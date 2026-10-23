@@ -1040,10 +1040,11 @@ if S4:
     SLOT = {'arch': (z_arch, yaw), 'dome': (z_dome, yaw), 'sphere': (z_sph, yaw),
             'cone': (z_cone, yaw @ Matrix.Rotation(math.pi, 3, 'X')),           # the triangle stands on its point
             'octa': (z_octa, yaw @ Matrix.Rotation(math.radians(15), 3, 'Z'))}
-    # the order they are drawn in, and when: the cube turns onto its edge first, then the pieces come one by one
-    FLIGHT = {'dome': (F_T - 10, F_T + 35), 'arch': (F_T + 5, F_T + 52), 'sphere': (F_T + 22, F_T + 65),
-              'cone': (F_T + 38, F_T + 85), 'octa': (F_T + 52, F_T + 95)}
-    CUBE_TURN = (F_T - 20, F_T + 20)
+    # stacked bottom up, as a column is built: arch, dome, the cube turning onto its edge, sphere, triangle, crystal.
+    # The camera glides up the column with them (after the stacked-spheres reference), then draws back to show it whole.
+    FLIGHT = {'arch': (F_T - 12, F_T + 24), 'dome': (F_T + 4, F_T + 38), 'sphere': (F_T + 30, F_T + 56),
+              'cone': (F_T + 42, F_T + 68), 'octa': (F_T + 52, F_T + 78)}
+    CUBE_TURN = (F_T + 16, F_T + 44)
     print('S4 TOTEM: cube at', tuple(round(x, 3) for x in P_T), 'height', round(z_octa + h['octa'] / 2 - z_arch + h['arch'] / 2, 2))
 
     def smoother(x):
@@ -1082,6 +1083,22 @@ if S4:
         cube.rotation_euler = q_c0.slerp(q_c1, e).to_euler('XYZ', cube.rotation_euler)
         cube.keyframe_insert('rotation_euler', frame=f)
 
+    # the two that keep orbiting draw their orbits as thin lines as the column completes (after the reference's
+    # line-drawn orbits): one full turn of each path, revealed head first
+    for nm, hexc in (('torus', '#ffe2a8'), ('cube', '#c8bcff')):
+        pts = orbits_full[nm]; i0 = F_DONE - S2_1
+        j = min(range(i0 + 40, len(pts)), key=lambda j_: (pts[j_] - pts[i0]).length)   # back where it started
+        loop_ = pts[i0:j + 1] + [pts[i0]]
+        ln_ = light_trail(f'ORBIT_LINE_{nm}', loop_, (loop_[1] - loop_[0]).cross(loop_[len(loop_) // 4] - loop_[0]).normalized(),
+                          (lambda u: 0.55), 0.0018, 1.4, taper=0.0, coll=SHAPES,
+                          stops=[(0.0, '#16122a'), (0.5, hexc), (1.0, '#ffffff')], anim=True)
+        ntl = ln_.data.materials[0].node_tree
+        for f_, v_ in ((1, 0.0), (F_DONE - 24, 0.0), (F_DONE + 22, 1.06)):
+            ntl.nodes['REVEAL'].outputs[0].default_value = v_; ntl.nodes['REVEAL'].outputs[0].keyframe_insert('default_value', frame=f_)
+        for fc in fcurves_of(ntl):
+            if 'REVEAL' in fc.data_path:
+                for kp in fc.keyframe_points: kp.interpolation = 'LINEAR'
+
     # Scene 03's helices let go as the system stops
     for nm in list(orbits_full) + ['pixel']:
         nt = bpy.data.objects[f'HELIX_{nm}'].data.materials[0].node_tree
@@ -1117,12 +1134,19 @@ if S4:
         return Vector((math.sin(a2) * math.cos(e2), -math.cos(a2) * math.cos(e2), math.sin(e2)))
     Z_UP = Vector((0, 0, 1))
     ST4 = {'C': ST['C'],
-           'T': (toward * 19.5, (0.6, 0.5), Z_UP),
+           'T': (toward * 8.5 + Vector((0, 0, z_arch + 0.3)), (0.5, 0.5), Z_UP),     # close, low: where the column starts
            'T2': (toward_at(AZ_T - 3, EL_T) * 18.6, (0.62, 0.5), Z_UP),
            'H': (toward_at(AZ_T - 4, EL_T) * 17.0, (0.627, 0.5), Z_UP),
            'F': (toward_at(AZ_T - 8, 6.0) * 95.0, (0.5, 0.64), Z_UP)}
     tgt4 = {k: aim(v[0], Vector((0, 0, 0)), v[1][0], v[1][1], v[2]) for k, v in ST4.items()}
-    tgt4['C'] = tgt_off['C']
+    tgt4['C'] = tgt_off['C']; tgt4['T'] = Vector((0, 0, z_arch + 0.3))
+    # the glide up the column: the camera's height follows the piece that is landing
+    CRANE = [(F_T, z_arch + 0.3), (F_T + 22, z_arch + 0.3), (F_T + 36, z_dome), (F_T + 46, 0.0), (F_T + 58, z_sph),
+             (F_T + 70, z_cone), (F_T + 82, z_octa - 0.25)]
+    def crane_z(f):
+        for (fa_, za), (fb_, zb) in zip(CRANE, CRANE[1:]):
+            if fa_ <= f <= fb_: return za + (zb - za) * ease((f - fa_) / (fb_ - fa_))
+        return CRANE[-1][1]
     keys4 = [(S3_1, 'C'), (F_T, 'T'), (F_DONE, 'T2'), (F_HEAD, 'H'), (S4_1, 'F')]
     cam.data.clip_end = max(cam.data.clip_end, 5000.0)
 
@@ -1150,11 +1174,18 @@ if S4:
         loc = P + off
         up = ST4[na][2].lerp(ST4[nb][2], t).normalized()
         tgt = P + tgt4[na].lerp(tgt4[nb], t)
+        if F_T < f < F_DONE:                                      # the glide, then the draw back to the whole totem
+            zc = crane_z(f); tw = Matrix.Rotation(math.radians(-0.07 * (f - F_T)), 3, 'Z') @ toward
+            loc = P + tw * 8.5 + Vector((0, 0, zc)); tgt = P + Vector((0, 0, zc)); up = Z_UP
+            if f > F_T + 82:
+                s2 = ease((f - F_T - 82) / (F_DONE - F_T - 82))
+                loc = loc.lerp(P + ST4['T2'][0], s2); tgt = tgt.lerp(P + tgt4['T2'], s2)
         cam.location = loc
         view = (tgt - loc).normalized(); r_, u_, b_ = basis(view, up)
         cam.rotation_euler = Matrix((r_, u_, b_)).transposed().to_euler('XYZ', cam.rotation_euler)
         cam.keyframe_insert('location', frame=f); cam.keyframe_insert('rotation_euler', frame=f)
-        cam.data.dof.focus_distance = (loc - P).length; cam.data.dof.aperture_fstop = 4.0
+        cam.data.dof.focus_distance = (loc - tgt).length if F_T < f < F_DONE else (loc - P).length
+        cam.data.dof.aperture_fstop = 4.0
         cam.data.dof.keyframe_insert('focus_distance', frame=f); cam.data.dof.keyframe_insert('aperture_fstop', frame=f)
         mw = Matrix.Translation(loc) @ Matrix((r_, u_, b_)).transposed().to_4x4()
         c_ = project(mw, P); e_ = project(mw, P + r_ * 0.62)
