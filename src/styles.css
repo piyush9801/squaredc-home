@@ -1,0 +1,137 @@
+@font-face{font-family:'Axiforma';src:url('/fonts/Axiforma-Light.woff2') format('woff2');font-weight:300;font-display:swap}
+@font-face{font-family:'Axiforma';src:url('/fonts/Axiforma-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Axiforma';src:url('/fonts/Axiforma-Medium.woff2') format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+
+:root{--ink:#07020e;--sand:#F2EBD9;--yellow:#FBB100;--blue:#1858FD;--gut:44px;--ease:cubic-bezier(.22,1,.36,1)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--sand)}
+body{font-family:'Axiforma',system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:inherit}
+a:focus-visible{outline:2px solid var(--yellow);outline-offset:4px;border-radius:4px}
+
+/* Header: the Work page's logo and pill nav, so the two pages read as one site. */
+.top{position:fixed;inset:0 0 auto 0;z-index:10;display:flex;align-items:center;justify-content:space-between;
+  padding:32px var(--gut);pointer-events:none}
+.top a,.top nav{pointer-events:auto}
+.logo img{display:block;height:40px;width:auto}
+.nav{display:flex;align-items:center;gap:40px;height:54px;padding:0 30px;border-radius:31px;
+  background:rgba(242,235,217,.08);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.nav a{font:300 14px/1 'Axiforma',sans-serif;color:rgba(242,235,217,.68);text-decoration:none;white-space:nowrap;transition:color .3s ease-out}
+.nav a:hover{color:var(--sand)}
+
+/* The pinned film. Height sets how much scrolling one pass of the film takes. */
+.scene{position:relative}
+.stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:var(--ink)}
+#film{position:absolute;inset:0;width:100%;height:100%;display:block}
+.grain{position:absolute;inset:-60px;pointer-events:none;opacity:.07;mix-blend-mode:overlay;background-repeat:repeat;
+  animation:grain .9s steps(6) infinite}
+@keyframes grain{0%{transform:translate(0,0)}17%{transform:translate(-22px,14px)}33%{transform:translate(18px,-26px)}
+  50%{transform:translate(-30px,-8px)}67%{transform:translate(26px,22px)}83%{transform:translate(-12px,30px)}100%{transform:translate(0,0)}}
+
+/* Copy sits in the dark band above the cube; it arrives once the cube has come out of the dark. */
+.copy{position:absolute;left:var(--gut);top:15vh;max-width:min(48vw,820px)}
+.copy h1{margin:0;font-weight:300;font-size:clamp(40px,4.6vw,92px);line-height:1;letter-spacing:-.04em}
+.ln{display:block;overflow:hidden;padding:0 0 .08em}
+.ln>span{display:inline-block;will-change:transform,opacity}
+.ln:nth-child(1)>span{transform:translateY(calc((1 - var(--a1,0)) * 108%));opacity:var(--a1,0)}
+.ln:nth-child(2)>span{transform:translateY(calc((1 - var(--a2,0)) * 108%));opacity:var(--a2,0)}
+.copy-2 h2{margin:0;font-weight:300;font-size:clamp(40px,4.6vw,92px);line-height:1;letter-spacing:-.04em}
+.copy-2 .ln:nth-child(1)>span{transform:translateY(calc((1 - var(--c1,0)) * 108%));opacity:var(--c1,0)}
+.copy-2 .ln:nth-child(2)>span{transform:translateY(calc((1 - var(--c1,0)) * 108%));opacity:var(--c1,0)}
+.copy-2 ul{list-style:none;margin:28px 0 0;padding:0;display:grid;gap:10px}
+.copy-2 li{position:relative;padding-left:24px;font-weight:300;font-size:clamp(16px,1.3vw,21px);line-height:1.35;color:rgba(242,235,217,.8);
+  opacity:var(--k,0);transform:translateX(calc((1 - var(--k,0)) * -12px))}
+/* the brand's pixel marks each line */
+.copy-2 li::before{content:'';position:absolute;left:0;top:.42em;width:9px;height:9px;background:var(--yellow);transform:scale(var(--k,0))}
+.copy p{margin:24px 0 0;font-weight:300;font-size:clamp(15px,1.15vw,19px);line-height:1.5;color:rgba(242,235,217,.72);
+  opacity:var(--b,0);transform:translateY(calc((1 - var(--b,0)) * 14px))}
+
+/* Scene 03. The headline is laid out in the plane's own box (2000 x 360) and mapped onto the frame by JS every frame,
+   so it stays put in the world while the camera moves. #fore is the film again, cut to whatever stands nearer than
+   that plane: shapes and light pass in front of the letters, the rest behind. */
+.moment{position:absolute;left:0;top:0;width:2000px;height:360px;margin:0;transform-origin:0 0;pointer-events:none;
+  font-weight:300;font-size:134px;line-height:1;letter-spacing:-.045em;white-space:nowrap;visibility:hidden;will-change:transform}
+.moment .w{position:absolute;top:var(--mt,112px);display:block;overflow:hidden;padding:0 .04em .14em}
+.moment .w1{right:calc(2000px - var(--gl,814px))}
+.moment .w2{left:var(--gr,1605px)}
+.moment .w>span{display:inline-block;will-change:transform,opacity}
+.moment .w1>span{transform:translateY(calc((1 - var(--m1,0)) * 108%));opacity:var(--m1,0)}
+.moment .w2>span{transform:translateY(calc((1 - var(--m2,0)) * 108%));opacity:var(--m2,0)}
+/* the second headline: 'And ideas become' | the totem | 'worlds.' (Scene 05), same machinery as the first */
+.moment-2{font-size:112px;--mt:124px;--gl:969px;--gr:1620px}
+#fore{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+/* the notes ride with the cube: a hairline from the cube out to the line, the brand's pixel where it starts */
+.leads{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.leads path{fill:none;stroke:rgba(242,235,217,.55);stroke-width:1}
+.leads rect{fill:var(--yellow)}
+.note{position:absolute;left:0;top:0;margin:0;font-weight:300;font-size:clamp(20px,1.8vw,30px);line-height:1.2;
+  color:rgba(242,235,217,.94);white-space:nowrap;overflow:hidden;padding:.3em .3em .14em;margin-left:-.3em;visibility:hidden;will-change:transform;
+  text-shadow:0 0 14px rgba(7,2,14,.85),0 0 3px rgba(7,2,14,.6)}
+.note>span{display:inline-block;transform:translateY(calc((1 - var(--n,0)) * 108%));opacity:var(--n,0)}
+
+.hint{position:absolute;right:var(--gut);bottom:7vh;display:flex;align-items:center;gap:14px;
+  font:400 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:rgba(242,235,217,.62);opacity:var(--h,1)}
+.hint i{position:relative;width:64px;height:1px;background:rgba(242,235,217,.24);overflow:hidden}
+.hint i::after{content:'';position:absolute;left:0;top:0;width:16px;height:1px;background:var(--yellow);animation:run 1.9s var(--ease) infinite}
+@keyframes run{from{transform:translateX(-16px)}to{transform:translateX(64px)}}
+
+/* Loading: a hairline that fills while the frames arrive, gone once the first pass is in. */
+.load{position:absolute;left:var(--gut);right:var(--gut);bottom:0;height:1px;background:rgba(242,235,217,.08);opacity:var(--l,1);transition:opacity .6s ease-out}
+.load i{position:absolute;left:0;top:0;bottom:0;width:calc(var(--lp,0) * 100%);background:rgba(251,177,0,.55)}
+
+@media (max-width:820px){
+  :root{--gut:20px}
+  .nav{display:none}
+  .copy{top:auto;bottom:16vh;max-width:none;right:var(--gut)}
+  .copy h1{font-size:clamp(36px,10vw,56px)}
+}
+/* The finale: under the one shape that remains, the brief's last words, the sign-off and the way on. */
+.finale{position:absolute;left:var(--gut);right:var(--gut);top:47vh;text-align:center;pointer-events:none}
+.finale h2{margin:0;font-weight:300;font-size:clamp(34px,3.7vw,68px);line-height:1.04;letter-spacing:-.035em}
+.finale .ln:nth-child(1)>span{transform:translateY(calc((1 - var(--f1,0)) * 108%));opacity:var(--f1,0)}
+.finale .ln:nth-child(2)>span{transform:translateY(calc((1 - var(--f2,0)) * 108%));opacity:var(--f2,0)}
+.finale .ln:nth-child(3)>span{transform:translateY(calc((1 - var(--f3,0)) * 108%));opacity:var(--f3,0)}
+.finale-sign{display:flex;align-items:center;justify-content:center;gap:18px;margin:34px 0 0;font-weight:300;
+  font-size:clamp(15px,1.15vw,19px);color:rgba(242,235,217,.78);opacity:var(--f4,0);transform:translateY(calc((1 - var(--f4,0)) * 12px))}
+.finale-sign img{height:30px;width:auto;display:block}
+.cta{display:inline-flex;align-items:center;gap:12px;margin-top:30px;height:54px;padding:0 30px;border-radius:31px;
+  font:400 15px/1 'Axiforma',sans-serif;color:var(--ink);background:var(--sand);text-decoration:none;
+  opacity:var(--f5,0);transform:translateY(calc((1 - var(--f5,0)) * 12px));pointer-events:auto;transition:background .3s ease-out}
+.cta:hover{background:var(--yellow)}
+.cta span{transition:transform .3s var(--ease)}
+.cta:hover span{transform:translateX(4px)}
+/* the stage's last frame melts into the footer below it */
+.stage-end{position:absolute;left:0;right:0;bottom:0;height:34vh;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(7,2,14,0),var(--ink));opacity:var(--e,0)}
+
+/* Footer: the landing page's real contact and links, set in this page's voice. */
+.site-foot{position:relative;background:var(--ink);padding:14vh var(--gut) 0;overflow:hidden}
+.ft-contact h2{margin:0;font-weight:300;font-size:clamp(36px,4.6vw,92px);line-height:1;letter-spacing:-.04em;max-width:14ch}
+.ft-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:40px}
+.btn{display:inline-flex;align-items:center;height:54px;padding:0 28px;border-radius:31px;font:400 15px/1 'Axiforma',sans-serif;
+  text-decoration:none;transition:background .3s ease-out,color .3s ease-out,border-color .3s ease-out}
+.btn.light{background:var(--sand);color:var(--ink)}
+.btn.light:hover{background:var(--yellow)}
+.btn.outline{border:1px solid rgba(242,235,217,.32);color:var(--sand)}
+.btn.outline:hover{border-color:var(--sand)}
+.ft-cols{display:grid;grid-template-columns:1fr 1fr 2fr;gap:40px;margin-top:16vh;padding-top:32px;border-top:1px solid rgba(242,235,217,.14)}
+.ft-cols nav{display:grid;gap:12px;align-content:start}
+.ft-cols a{font-weight:300;font-size:15px;color:rgba(242,235,217,.72);text-decoration:none;width:max-content;transition:color .3s ease-out}
+.ft-cols a:hover{color:var(--sand)}
+.ft-cols p{margin:0;justify-self:end;font:400 11px/1.6 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(242,235,217,.5);text-align:right}
+.ft-word{display:block;width:100%;height:auto;margin:10vh 0 -1.2vw;opacity:.96}
+@media (max-width:820px){
+  .ft-cols{grid-template-columns:1fr 1fr}
+  .ft-cols p{grid-column:1 / -1;justify-self:start;text-align:left}
+  .finale{top:52vh}
+}
+
+/* portrait: the film is cropped to its middle, so the headline cannot live in the plane; it sits as a plain block */
+.moment.flat{left:var(--gut);right:var(--gut);top:16vh;width:auto;height:auto;transform:none!important;
+  font-size:clamp(36px,10vw,56px);white-space:normal}
+.moment.flat .w{position:relative;top:auto;right:auto;left:auto}
+@media (prefers-reduced-motion:reduce){
+  .grain,.hint i::after{animation:none}
+  .scene{height:100vh}
+}

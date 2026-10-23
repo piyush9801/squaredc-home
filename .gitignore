@@ -1,0 +1,9 @@
+node_modules/
+dist/
+qa/
+.netlify/
+.DS_Store
+*.blend
+*.blend1
+blender/*_backup.py
+__pycache__/
