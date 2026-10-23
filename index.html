@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Square DC</title>
+  <meta name="description" content="Welcome to our universe. A space where ideas take shape.">
+  <meta name="theme-color" content="#07020e">
+  <link rel="icon" href="/squaredc-home/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/squaredc-home/frames/s01/f_0001.webp" as="image">
+  <link rel="preload" href="/squaredc-home/fonts/Axiforma-Light.woff2" as="font" type="font/woff2" crossorigin>
+  <script type="module" crossorigin src="/squaredc-home/assets/index-BT0eZiSW.js"></script>
+  <link rel="stylesheet" crossorigin href="/squaredc-home/assets/index-DBVISxhq.css">
+</head>
+<body>
+  <header class="top">
+    <a class="logo" href="./" aria-label="Square DC home"><img src="/squaredc-home/brand/lockup-on-dark.svg" alt="Square DC" height="40"></a>
+    <nav class="nav" aria-label="Main">
+      <a href="#">About Us</a>
+      <a href="https://squaredc-work.netlify.app/">Work</a>
+      <a href="#">Pricing</a>
+      <a href="#">48 hrs Delivery</a>
+      <a href="#contact">Contact Us</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- The universe: one pinned stage; scroll position picks the frame of one continuous Blender film (Scene 01,
+         a rest on the hero frame with its idle loop, then Scenes 02-06), so scrolling down plays it and up rewinds it. -->
+    <section id="universe" class="scene" aria-label="Welcome to our universe">
+      <div class="stage">
+        <canvas id="film" aria-hidden="true"></canvas>
+        <div class="grain" aria-hidden="true"></div>
+        <div class="copy">
+          <h1><span class="ln"><span>Welcome to</span></span><span class="ln"><span>our universe.</span></span></h1>
+          <p>A space where ideas take shape.</p>
+        </div>
+        <div class="copy copy-2">
+          <h2><span class="ln"><span>Everything starts</span></span><span class="ln"><span>with a shape.</span></span></h2>
+          <ul>
+            <li style="--k:var(--c2)">An idea.</li>
+            <li style="--k:var(--c3)">A thought.</li>
+            <li style="--k:var(--c4)">A possibility.</li>
+          </ul>
+        </div>
+        <!-- Scene 03. The headline stands inside the system: a plane in the 3D world, mapped onto the frame each frame.
+             #fore redraws the film's pixels for whatever is nearer than that plane, so shapes pass in front of the
+             letters and behind them. The two notes ride with the cube and say what is happening where it happens. -->
+        <h2 class="moment"><span class="w w1"><span>Ideas attract</span></span> <span class="w w2"><span>ideas.</span></span></h2>
+        <canvas id="fore" aria-hidden="true"></canvas>
+        <div class="dip" aria-hidden="true"></div>
+        <svg class="leads" aria-hidden="true"><g class="lead lead-1"><path/><rect width="6" height="6"/></g><g class="lead lead-2"><path/><rect width="6" height="6"/></g></svg>
+        <p class="note note-1"><span>And when they come together,</span></p>
+        <p class="note note-2"><span>something new begins.</span></p>
+        <!-- Scene 03b. How we work: the landing page's 4D, one station at a time, while the idea is made into the cube. -->
+        <div class="make">
+          <p class="make-eyebrow">How We Work</p>
+          <div class="step">
+            <p class="step-n">01</p>
+            <h3><span class="ln"><span>Define</span></span></h3>
+            <p class="step-d">We respond favourably to innovative design ideas and lay down guiding principles for potential solutions.</p>
+            <p class="step-s">Ideation · Research &amp; Strategy · UX Wireframing</p>
+          </div>
+          <div class="step">
+            <p class="step-n">02</p>
+            <h3><span class="ln"><span>Design</span></span></h3>
+            <p class="step-d">We follow industrial best practices to cherry-pick the final solution and define measurable targets that need to be achieved.</p>
+            <p class="step-s">UI/UX Design · Brand &amp; Design Guidelines · Graphic Design</p>
+          </div>
+          <div class="step">
+            <p class="step-n">03</p>
+            <h3><span class="ln"><span>Develop</span></span></h3>
+            <p class="step-d">Once we agree on the roadmap, it’s time to make things happen at full throttle.</p>
+            <p class="step-s">Front-end Development · Back-end Development · Mobile App Development</p>
+          </div>
+          <div class="step">
+            <p class="step-n">04</p>
+            <h3><span class="ln"><span>Deliver</span></span></h3>
+            <p class="step-d">The finished product is improved based on feedback and for everything else we are there to support.</p>
+            <p class="step-s">SEO · Google &amp; Meta Ads · Marketing Funnel Creation</p>
+          </div>
+        </div>
+        <!-- Scenes 04-06. The shapes build the brand's 'Structure For Clarity' totem; it ignites and the second headline
+             stands in the gap beside it, in the world like the first; then the camera pulls back to one glowing shape. -->
+        <h2 class="moment moment-2"><span class="w w1"><span>And ideas become</span></span> <span class="w w2"><span>worlds.</span></span></h2>
+        <div class="finale">
+          <h2><span class="ln"><span>Different ideas.</span></span><span class="ln"><span>Different worlds.</span></span><span class="ln"><span>One universe.</span></span></h2>
+          <p class="finale-sign"><img src="/squaredc-home/brand/lockup-on-dark.svg" alt="Square DC" height="30"><span>Your Product Team. Without Hiring One.</span></p>
+          <a class="cta" href="https://squaredc-work.netlify.app/">Explore Our Work <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="stage-end" aria-hidden="true"></div>
+        <div class="hint" aria-hidden="true"><span>Scroll</span><i></i></div>
+        <div class="load" aria-hidden="true"><i></i></div>
+      </div>
+    </section>
+
+    <footer class="site-foot" id="contact">
+      <div class="ft-contact">
+        <h2>Let’s connect for a new project.</h2>
+        <div class="ft-actions">
+          <a class="btn light" href="mailto:team@squaredc.co">team@squaredc.co</a>
+          <a class="btn outline" href="https://api.whatsapp.com/send?phone=919555566770" target="_blank" rel="noopener">WhatsApp</a>
+          <a class="btn outline" href="tel:+919555566770">+91-9555566770</a>
+        </div>
+      </div>
+      <div class="ft-cols">
+        <nav aria-label="Footer">
+          <a href="#">About Us</a>
+          <a href="https://squaredc-work.netlify.app/">Work</a>
+          <a href="#">Pricing</a>
+          <a href="#">48 hrs Delivery</a>
+          <a href="#contact">Contact Us</a>
+        </nav>
+        <nav aria-label="Social">
+          <a href="https://www.linkedin.com/company/squaredc-co/" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="https://www.instagram.com/squaredc.co/" target="_blank" rel="noopener">Instagram</a>
+          <a href="https://dribbble.com/SquareDC" target="_blank" rel="noopener">Dribbble</a>
+          <a href="https://www.facebook.com/Squaredc.co" target="_blank" rel="noopener">Facebook</a>
+        </nav>
+        <p>India · United States · Netherlands · Australia · Dubai · Vietnam</p>
+      </div>
+      <img class="ft-word" src="/squaredc-home/brand/lockup-on-dark.svg" alt="Square DC">
+    </footer>
+  </main>
+
+</body>
+</html>
