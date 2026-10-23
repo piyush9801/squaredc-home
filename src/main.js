@@ -11,6 +11,10 @@ import Lenis from 'lenis';
 //         the moment (the headline inside the system), then the cube breaks away and the shapes follow it; the camera
 //         tracks alongside, then comes round ahead. A rest at each of the three, where the words are. The two moves
 //         after the moment travel far, so they have the most frames per scroll.
+//   film  Scene 03b, The making               frames 1001-1430 (played here, between 03 and 04): the landing page's
+//         4D, one station each: the idea draws a blueprint (Define), blocks lock into the cube (Design), it races down
+//         a gold slide that builds itself ahead of it (Develop), and is thrown into a gold ring (Deliver). A dip to the
+//         dark into it, a flash of the ring's gold out of it.
 //   film  Scenes 04-06, The creation          frames 566-1000: the system comes to rest and the shapes build the brand's
 //         'Structure For Clarity' totem (the scroll builds it); it ignites and the second headline stands beside it;
 //         then the camera pulls far back to one glowing shape, for the last words. The footer follows the stage.
@@ -18,8 +22,12 @@ const FILMS = [
   { dir: 's01', from: 1, count: 120 },
   { dir: 's02', from: 121, count: 140 },
   { dir: 's03', from: 261, count: 305 },
+  { dir: 's03b', from: 1001, count: 430 },
   { dir: 's04', from: 566, count: 435 },
 ];
+// film frame number -> global frame index (the films play in the order above, not in frame-number order) and back
+const G = fn => { let k = 0; for (const f of FILMS) { if (fn >= f.from && fn < f.from + f.count) return k + fn - f.from; k += f.count; } return -1; };
+const frameNo = i => { let k = i; for (const f of FILMS) { if (k < f.count) return f.from + k; k -= f.count; } return -1; };
 const TOTAL = FILMS.reduce((n, f) => n + f.count, 0);
 const SEGMENTS = [                         // scroll length of each part, in viewport heights
   { kind: 'film', a: 0, b: 119, vh: 300 },
@@ -32,13 +40,21 @@ const SEGMENTS = [                         // scroll length of each part, in vie
   { kind: 'hold', a: 424, b: 424, vh: 50 },
   { kind: 'film', a: 424, b: 564, vh: 220 },     // round ahead, looking back down the spiral
   { kind: 'hold', a: 564, b: 564, vh: 60 },
-  { kind: 'film', a: 564, b: 699, vh: 220 },     // it comes to rest; the camera comes round to face it
-  { kind: 'film', a: 699, b: 799, vh: 280 },     // the shapes build the totem, one by one, as you scroll
-  { kind: 'hold', a: 799, b: 799, vh: 40 },
-  { kind: 'film', a: 799, b: 879, vh: 180 },     // it ignites; the dust bursts outward
-  { kind: 'hold', a: 879, b: 879, vh: 70 },      // 'And ideas become worlds.'
-  { kind: 'film', a: 879, b: 999, vh: 240 },     // far back, to one glowing shape
-  { kind: 'hold', a: 999, b: 999, vh: 90 },      // the last words; then the footer
+  { kind: 'film', a: 564, b: G(1001), vh: 40 },         // through the dark (the cut sits under the dip)
+  { kind: 'film', a: G(1001), b: G(1100), vh: 220 },    // 01 Define: the blueprint draws itself
+  { kind: 'hold', a: G(1100), b: G(1100), vh: 40 },
+  { kind: 'film', a: G(1100), b: G(1198), vh: 230 },    // 02 Design: the blocks lock in; it turns yellow
+  { kind: 'hold', a: G(1198), b: G(1198), vh: 40 },
+  { kind: 'film', a: G(1198), b: G(1326), vh: 280 },    // 03 Develop: down the slide, full throttle
+  { kind: 'film', a: G(1326), b: G(1430), vh: 230 },    // 04 Deliver: into the ring; back to see the whole
+  { kind: 'film', a: G(1430), b: G(566), vh: 40 },      // through the ring's gold
+  { kind: 'film', a: G(566), b: G(700), vh: 200 },      // it comes to rest; the camera comes round to face it
+  { kind: 'film', a: G(700), b: G(800), vh: 280 },      // the shapes build the totem, one by one, as you scroll
+  { kind: 'hold', a: G(800), b: G(800), vh: 40 },
+  { kind: 'film', a: G(800), b: G(880), vh: 180 },      // it ignites; the dust bursts outward
+  { kind: 'hold', a: G(880), b: G(880), vh: 70 },       // 'And ideas become worlds.'
+  { kind: 'film', a: G(880), b: G(1000), vh: 240 },     // far back, to one glowing shape
+  { kind: 'hold', a: G(1000), b: G(1000), vh: 90 },     // the last words; then the footer
 ];
 const LOOP_L = 96, LOOP_C = 24, LOOP_FPS = 24;
 const BASE = import.meta.env.BASE_URL;        // '/' locally and on Netlify, '/squaredc-home/' on GitHub Pages
@@ -61,6 +77,8 @@ const fore = document.getElementById('fore');
 const fctx = fore.getContext('2d');
 const moments = [...stage.querySelectorAll('.moment')];
 const finale = stage.querySelector('.finale');
+const make = stage.querySelector('.make'), steps = [...stage.querySelectorAll('.step')];
+const dip = stage.querySelector('.dip');
 const notes = [...stage.querySelectorAll('.note')];
 const leads = [...stage.querySelectorAll('.lead')];
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -206,10 +224,10 @@ function quadMatrix(q, bw, bh, fb) {
 }
 // The notes: the film frames each one lives on, from the track's two rests (alongside, looking back): each comes in
 // over the last stretch before its rest; the first goes as the camera swings away.
-const noteBeats = t => [{ a: t.b - 1 - 24, b: t.b - 1 + 8 }, { a: t.c - 1 - 26, b: t.c - 1 + 2 }];
+const noteBeats = t => [{ a: t.b - 1 - 24, b: t.b - 1 + 8 }, { a: t.c - 1 - 26, b: t.c - 1, len: 2 }];   // the 2nd goes in the dark
 function noteAt(k, idx, T, fb) {
   const el = notes[k], lead = leads[k], beat = T && noteBeats(track)[k];
-  const p = T ? smooth((idx - beat.a) / 20) * (1 - smooth((idx - beat.b) / 16)) : 0;
+  const p = T ? smooth((idx - beat.a) / 20) * (1 - smooth((idx - beat.b) / (beat.len || 16))) : 0;
   if (p <= 0.001) { el.style.visibility = 'hidden'; lead.style.opacity = 0; return; }
   const W = stage.clientWidth;
   const cx = fb.x + T.c[0] * fb.w, cy = fb.y + T.c[1] * fb.h, rr = T.r * fb.w;
@@ -233,14 +251,14 @@ function noteAt(k, idx, T, fb) {
 }
 // The two headlines: when each rises in and when it lets go (film frame indices), and whose track carries its plane.
 const MOMENTS = [
-  { el: moments[0], track: () => track, in1: 296, in2: 304, out: 344, outLen: 26 },   // Ideas attract ideas.
-  { el: moments[1], track: () => track4, in1: 852, in2: 860, out: 893, outLen: 30 },  // And ideas become worlds.
+  { el: moments[0], track: () => track, in1: G(297), in2: G(305), out: G(345), outLen: 26 },   // Ideas attract ideas.
+  { el: moments[1], track: () => track4, in1: G(853), in2: G(861), out: G(894), outLen: 30 },  // And ideas become worlds.
 ];
 let shownIdx = -1;
 function overlays(idx, force) {
   if (idx === shownIdx && !force) return;
   shownIdx = idx;
-  const f = idx + 1;                                        // film frame number
+  const f = frameNo(idx);                                   // film frame number
   const fb = frameBox();
   // each headline rises in as the camera settles, then stays where it is in the world and goes with it
   let drawn = false;
@@ -267,7 +285,27 @@ function overlays(idx, force) {
   const Tn = track && f >= track.from ? track.frames[Math.min(f - track.from, track.frames.length - 1)] : null;
   notes.forEach((_, k) => noteAt(k, idx, Tn, fb));
   // the finale, under the one shape that remains
-  [952, 962, 972, 982, 990].forEach((a, k) => finale.style.setProperty(`--f${k + 1}`, smooth((idx - a) / 18).toFixed(3)));
+  [953, 963, 973, 983, 991].forEach((a, k) => finale.style.setProperty(`--f${k + 1}`, smooth((idx - G(a)) / 18).toFixed(3)));
+  // the 4D: each step over its station (film frames of Scene 03b)
+  make.style.setProperty('--mk', (smooth((idx - G(1006)) / 12) * (1 - smooth((idx - G(1418)) / 10))).toFixed(3));
+  STEPS.forEach(([a, b], k) => {
+    const v = smooth((idx - G(a)) / 14) * (1 - smooth((idx - G(b)) / 10));
+    const el = steps[k];
+    el.style.visibility = v > 0.001 ? 'visible' : 'hidden';
+    el.style.setProperty('--s', v.toFixed(3)); el.style.setProperty('--s2', (smooth((idx - G(a) - 6) / 14) * (1 - smooth((idx - G(b)) / 10))).toFixed(3));
+  });
+}
+const STEPS = [[1014, 1096], [1110, 1194], [1204, 1320], [1334, 1422]];
+// the dips between chapters, on the continuous frame position: into the making through the dark, out through gold
+// (each crossing has a scroll stretch of its own, one frame long: the dip peaks where the frame swaps)
+function dips(cur) {
+  const x1 = cur - 564, x2 = cur - G(1430);
+  const d1 = x1 > 0 && x1 < 1 ? Math.sin(Math.PI * x1) : 0;
+  let d2 = 0;                                               // the gold builds with the ring's flash, then peaks
+  if (x2 > -6 && x2 <= 0) d2 = 0.35 * (1 + x2 / 6);
+  else if (x2 > 0 && x2 < 1) d2 = x2 < 0.5 ? 0.35 + 0.65 * Math.sin(Math.PI * x2) : Math.sin(Math.PI * x2);
+  dip.style.setProperty('--dipc', d2 > d1 ? '#ffd88a' : '#07020e');
+  dip.style.setProperty('--dip', smooth(Math.max(d1, d2)).toFixed(3));
 }
 
 resize();
@@ -318,6 +356,7 @@ if (reduced) {
       shown = im;
     }
     overlays(mode === 'loop' ? 119 : idx, repaint || im !== frames[idx]);
+    dips(mode === 'loop' ? 119 : cur);
     copy(loc);
     requestAnimationFrame(tick);
   };
