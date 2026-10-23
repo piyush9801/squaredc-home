@@ -40,15 +40,15 @@ const SEGMENTS = [                         // scroll length of each part, in vie
   { kind: 'hold', a: 424, b: 424, vh: 50 },
   { kind: 'film', a: 424, b: 564, vh: 220 },     // round ahead, looking back down the spiral
   { kind: 'hold', a: 564, b: 564, vh: 60 },
-  { kind: 'film', a: 564, b: G(1001), vh: 40 },         // through the dark (the cut sits under the dip)
-  { kind: 'film', a: G(1001), b: G(1100), vh: 220 },    // 01 Define: the blueprint draws itself
+  { kind: 'film', a: 564, b: G(1008), vh: 110 },        // into the cube's gold, and out of it onto the idea
+  { kind: 'film', a: G(1008), b: G(1100), vh: 200 },    // 01 Define: the blueprint draws itself
   { kind: 'hold', a: G(1100), b: G(1100), vh: 40 },
   { kind: 'film', a: G(1100), b: G(1198), vh: 230 },    // 02 Design: the blocks lock in; it turns yellow
   { kind: 'hold', a: G(1198), b: G(1198), vh: 40 },
   { kind: 'film', a: G(1198), b: G(1326), vh: 280 },    // 03 Develop: down the slide, full throttle
   { kind: 'film', a: G(1326), b: G(1430), vh: 230 },    // 04 Deliver: into the ring; back to see the whole
-  { kind: 'film', a: G(1430), b: G(566), vh: 40 },      // through the ring's gold
-  { kind: 'film', a: G(566), b: G(700), vh: 200 },      // it comes to rest; the camera comes round to face it
+  { kind: 'film', a: G(1430), b: G(573), vh: 110 },     // into the ring's gold, and out of it onto the cube
+  { kind: 'film', a: G(573), b: G(700), vh: 190 },      // it comes to rest; the camera comes round to face it
   { kind: 'film', a: G(700), b: G(800), vh: 280 },      // the shapes build the totem, one by one, as you scroll
   { kind: 'hold', a: G(800), b: G(800), vh: 40 },
   { kind: 'film', a: G(800), b: G(880), vh: 180 },      // it ignites; the dust bursts outward
@@ -153,16 +153,21 @@ function resize() {
   moments.forEach(m => m.classList.toggle('flat', stage.clientWidth / stage.clientHeight < 1.2));
   forcePaint = true;
 }
-function cover(c, im, alpha = 1) {
+function cover(c, im, alpha = 1, z = null) {
   const cw = c.canvas.width, ch = c.canvas.height;
   const s = Math.max(cw / im.naturalWidth, ch / im.naturalHeight);       // cover
-  const w = im.naturalWidth * s, h = im.naturalHeight * s;
+  let w = im.naturalWidth * s, h = im.naturalHeight * s, x = (cw - w) / 2, y = (ch - h) / 2;
+  if (z) {                     // scaled about a point of the film (0..1 across its own frame)
+    const px = x + z.x * w, py = y + z.y * h;
+    x = px + (x - px) * z.s; y = py + (y - py) * z.s; w *= z.s; h *= z.s;
+  }
   c.globalAlpha = alpha;
   c.imageSmoothingQuality = 'high';
-  c.drawImage(im, (cw - w) / 2, (ch - h) / 2, w, h);
+  c.drawImage(im, x, y, w, h);
   c.globalAlpha = 1;
 }
-const paint = (im, alpha) => cover(ctx, im, alpha);
+let zoom = null;               // set while crossing between chapters
+const paint = (im, alpha) => cover(ctx, im, alpha, zoom);
 
 (function grain() {            // film grain: one small noise tile, animated by CSS
   const c = document.createElement('canvas'); c.width = c.height = 160;
@@ -296,16 +301,39 @@ function overlays(idx, force) {
   });
 }
 const STEPS = [[1014, 1096], [1110, 1194], [1204, 1320], [1334, 1422]];
-// the dips between chapters, on the continuous frame position: into the making through the dark, out through gold
-// (each crossing has a scroll stretch of its own, one frame long: the dip peaks where the frame swaps)
-function dips(cur) {
-  const x1 = cur - 564, x2 = cur - G(1430);
-  const d1 = x1 > 0 && x1 < 1 ? Math.sin(Math.PI * x1) : 0;
-  let d2 = 0;                                               // the gold builds with the ring's flash, then peaks
-  if (x2 > -6 && x2 <= 0) d2 = 0.35 * (1 + x2 / 6);
-  else if (x2 > 0 && x2 < 1) d2 = x2 < 0.5 ? 0.35 + 0.65 * Math.sin(Math.PI * x2) : Math.sin(Math.PI * x2);
-  dip.style.setProperty('--dipc', d2 > d1 ? '#ffd88a' : '#07020e');
-  dip.style.setProperty('--dip', smooth(Math.max(d1, d2)).toFixed(3));
+// The crossings between chapters, on the continuous frame position. Each dives into the glowing gold thing on screen
+// (the last frame held and scaled up about it while its gold fills the stage), then comes out of the gold onto the
+// next chapter's subject (its first frames, scaled down onto it): the cube becomes the idea; the ring, the cube.
+// where the idea is on screen in Scene 03b's first frames (from the Blender camera), for the light to gather into
+const BALL_IN = [[.40, .91], [.41, .88], [.42, .86], [.43, .83], [.44, .80], [.45, .78], [.46, .75], [.47, .73], [.48, .72], [.49, .71], [.50, .70], [.51, .70]];
+function crossing(cur) {
+  const last = t => t && t.frames[t.frames.length - 1];
+  const legs = [
+    { a: 564, into: () => last(track) && last(track).c, out: f => BALL_IN[f - 1001] },                 // 03 -> 03b
+    { a: G(1430), into: () => [0.61, 0.51], out: f => track4 && track4.frames[f - track4.from] && track4.frames[f - track4.from].c },  // 03b -> 04
+  ];
+  for (const L of legs) {
+    const k = cur - L.a;
+    if (k > 0 && k < 4) {
+      const e = k / 4, c = L.into() || [0.5, 0.5];
+      return { idx: L.a, z: { s: 1 + 7 * e * e * e, x: c[0], y: c[1] }, gold: Math.pow(e, 1.4), r: 18 + 150 * Math.pow(e, 1.5) };
+    }
+    if (k >= 4 && k < 8) {
+      const e = (k - 4) / 4, i = Math.round(cur), c = L.out(frameNo(i)) || [0.5, 0.5];
+      return { idx: i, z: { s: 1 + 3 * (1 - e) * (1 - e), x: c[0], y: c[1] }, gold: 1 - smooth((e - 0.45) / 0.55), r: 4 + 164 * (1 - e) * (1 - e) };  // the light gathers back into the subject
+    }
+    if (k > -6 && k <= 0 && L.a !== 564) return { idx: null, z: { s: 1, x: 0.61, y: 0.51 }, gold: 0.5 * (1 + k / 6), r: 18 };  // the ring's glow builds
+  }
+  return null;
+}
+function dips(X) {              // the glow is centred where the camera dives (or, before it, on the ring)
+  dip.style.setProperty('--dip', (X ? X.gold : 0).toFixed(3));
+  if (X && X.r) dip.style.setProperty('--dr', X.r.toFixed(1) + 'vmax');
+  if (X && X.z) {
+    const fb = frameBox(), W = stage.clientWidth, H = stage.clientHeight;
+    dip.style.setProperty('--dx', ((fb.x + X.z.x * fb.w) / W * 100).toFixed(2) + '%');
+    dip.style.setProperty('--dy', ((fb.y + X.z.y * fb.h) / H * 100).toFixed(2) + '%');
+  }
 }
 
 resize();
@@ -338,11 +366,14 @@ if (reduced) {
 
     let im;
     const idx = Math.round(cur);
+    const X = mode === 'film' ? crossing(cur) : null;
+    if (zoom || (X && X.z)) forcePaint = true;               // repaint every tick while scaling, and once after
+    zoom = X && X.z;
     if (mode === 'loop') {
       const k = (Math.floor((t - loopT0) / 1000 * LOOP_FPS) + LOOP_C) % LOOP_L;   // start nearest the film's end
       im = loopFrames[k] || nearest(119);
     } else {
-      im = nearest(idx);
+      im = nearest(X && X.idx != null ? X.idx : idx);
     }
     const repaint = forcePaint;
     if (im) {
@@ -356,7 +387,7 @@ if (reduced) {
       shown = im;
     }
     overlays(mode === 'loop' ? 119 : idx, repaint || im !== frames[idx]);
-    dips(mode === 'loop' ? 119 : cur);
+    dips(X);
     copy(loc);
     requestAnimationFrame(tick);
   };

@@ -501,7 +501,7 @@ for f in range(F0, F1 + 1):
     cam.data.dof.keyframe_insert('focus_distance', frame=f); cam.data.dof.keyframe_insert('aperture_fstop', frame=f)
 
 if MODE == 'dry':
-    for f in (TL, TL + 20, TL + 40, TL + 55, F1 - 26, F1 - 10, F1):
+    for f in tuple(range(1001, 1013)) + (F1 - 4, F1 - 2, F1):
         scene.frame_set(f)
         v = screen_pos(scene, cam, ball.matrix_world.translation)
         r_ = screen_pos(scene, cam, RC); c_ = screen_pos(scene, cam, Vector((0, 0, 0))); h_ = screen_pos(scene, cam, hel[-1])
