@@ -868,6 +868,72 @@ if S3:
             anim_node_value(nt.nodes['TAIL'], [(S2_1, 14.7 / S3_LEN), (F_MOM, 18.9 / S3_LEN), (F_B, 72 / S3_LEN), (F_C, 96 / S3_LEN)])
             anim_node_value(nt.nodes['GAIN'], [(S2_1, 0.0), (S2_1 + 14, 0.6), (F_MOM, 0.6), (F_B, 0.9)])  # quiet under the words
 
+    # THE SHAPES SHED (the particle reference, run forward): as gravity takes hold, each shape sheds a stream of fine
+    # grains that spiral in and flatten into a disc round the cube, gold from the warm shapes, violet from the cool;
+    # the disc melts into the rings just before the cube breaks away, so nothing of it is left for the journey.
+    SHED_END = S2_1 + 56                                  # gone as the headline arrives
+    Minv = M.inverted()
+    rs_ = random.Random(23)
+    sh = {k: [] for k in ('b', 'T', 'r0', 'th0', 'z0', 'r1', 'w', 'size', 'bright', 'tone')}
+    for nm, pts in paths.items():
+        if nm == 'pixel': continue
+        for _ in range(2200):
+            b = rs_.uniform(S2_1 + 2, S2_1 + 30)
+            p_ = pts[int(b) - S2_1] - cpos(int(b)) + Vector((rs_.gauss(0, 0.07), rs_.gauss(0, 0.07), rs_.gauss(0, 0.07)))
+            q = Minv @ p_
+            r1 = 1.45 + 1.95 * rs_.random() ** 1.2
+            sh['b'].append(b); sh['T'].append(rs_.uniform(26, 44))
+            sh['r0'].append(math.hypot(q.x, q.y)); sh['th0'].append(math.atan2(q.y, q.x)); sh['z0'].append(q.z)
+            sh['r1'].append(r1); sh['w'].append(math.radians(2.0 * (2.7 / r1) ** 1.5))
+            sh['size'].append(0.0035 + 0.006 * rs_.random() ** 2)
+            sh['bright'].append(0.15 + 0.6 * rs_.random() ** 2.2)
+            sh['tone'].append(rs_.uniform(0.08, 0.4) if nm in WARM else rs_.uniform(0.55, 0.92))
+    shed = points_object('SHED_GRAINS', [(0, 0, 0)] * len(sh['b']), sh, FX)
+    parent_to(shed, system)
+    sh_mat = glow_mat('shed grains', DUST_STOPS, 4.0)
+    sh_src = tiny_sphere('SHED_src', sh_mat, FX, subdiv=2)
+    ng_s = bpy.data.node_groups.new('SHED_GN', 'GeometryNodeTree')
+    ng_s.interface.new_socket('Geometry', in_out='INPUT', socket_type='NodeSocketGeometry')
+    ng_s.interface.new_socket('Geometry', in_out='OUTPUT', socket_type='NodeSocketGeometry')
+    Ns, Ls = ng_s.nodes, ng_s.links
+    gi_s = Ns.new('NodeGroupInput'); go_s = Ns.new('NodeGroupOutput')
+    def _sa(name):
+        n_ = Ns.new('GeometryNodeInputNamedAttribute'); n_.data_type = 'FLOAT'; n_.inputs['Name'].default_value = name
+        return n_.outputs['Attribute']
+    def _sm(op, a, b=None, clamp=False):
+        n_ = Ns.new('ShaderNodeMath'); n_.operation = op; n_.use_clamp = clamp
+        for i_, v_ in enumerate((a, b)):
+            if v_ is None: continue
+            if isinstance(v_, (int, float)): n_.inputs[i_].default_value = v_
+            else: Ls.new(v_, n_.inputs[i_])
+        return n_.outputs[0]
+    st_s = Ns.new('GeometryNodeInputSceneTime'); F_ = st_s.outputs['Frame']
+    age = _sm('SUBTRACT', F_, _sa('b'))
+    mrs = Ns.new('ShaderNodeMapRange'); mrs.interpolation_type = 'SMOOTHERSTEP'
+    Ls.new(_sm('DIVIDE', age, _sa('T'), clamp=True), mrs.inputs['Value']); es = mrs.outputs['Result']
+    rr_ = _sm('ADD', _sa('r0'), _sm('MULTIPLY', _sm('SUBTRACT', _sa('r1'), _sa('r0')), es))      # drawn in to its ring
+    zz_ = _sm('MULTIPLY', _sa('z0'), _sm('SUBTRACT', 1.0, es))                                      # flattened into the plane
+    th_ = _sm('ADD', _sa('th0'), _sm('MULTIPLY', _sa('w'), _sm('MAXIMUM', age, 0.0)))               # and round
+    cb_s = Ns.new('ShaderNodeCombineXYZ')
+    Ls.new(_sm('MULTIPLY', rr_, _sm('COSINE', th_)), cb_s.inputs['X']); Ls.new(_sm('MULTIPLY', rr_, _sm('SINE', th_)), cb_s.inputs['Y'])
+    Ls.new(zz_, cb_s.inputs['Z'])
+    rot_s = Ns.new('ShaderNodeVectorRotate'); rot_s.rotation_type = 'EULER_XYZ'
+    Ls.new(cb_s.outputs[0], rot_s.inputs['Vector']); rot_s.inputs['Rotation'].default_value = plane
+    sp_s = Ns.new('GeometryNodeSetPosition'); Ls.new(gi_s.outputs['Geometry'], sp_s.inputs['Geometry'])
+    Ls.new(rot_s.outputs['Vector'], sp_s.inputs['Position'])
+    born = _sm('DIVIDE', age, 6.0, clamp=True)                                                      # it leaves the shape
+    melt = _sm('SUBTRACT', 1.0, _sm('DIVIDE', _sm('SUBTRACT', F_, SHED_END - 16), 16.0, clamp=True)) # into the rings
+    scl_s = _sm('MULTIPLY', _sm('MULTIPLY', _sa('size'), born), melt)
+    iop_s = Ns.new('GeometryNodeInstanceOnPoints')
+    oi_s = Ns.new('GeometryNodeObjectInfo'); oi_s.inputs['Object'].default_value = sh_src; oi_s.inputs['As Instance'].default_value = True
+    Ls.new(sp_s.outputs['Geometry'], iop_s.inputs['Points']); Ls.new(oi_s.outputs['Geometry'], iop_s.inputs['Instance'])
+    Ls.new(scl_s, iop_s.inputs['Scale'])
+    Ls.new(iop_s.outputs['Instances'], go_s.inputs['Geometry'])
+    shed.modifiers.new('GN', 'NODES').node_group = ng_s
+    set_vis(shed, diffuse=False, shadow=False, scatter=False)
+    for f_, h_ in ((1, True), (S2_1, True), (S2_1 + 1, False), (SHED_END, False), (SHED_END + 1, True)):
+        shed.hide_render = h_; shed.keyframe_insert('hide_render', frame=f_)
+
     # space dust along the route, ahead of the moment: it streams past once the system moves, so travel reads as speed
     rd = random.Random(91); md_pts, md_b, md_s = [], [], []
     while len(md_pts) < 4200:
