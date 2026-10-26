@@ -5,7 +5,7 @@
 3. One light   - a strong star behind the subject for the rim; the yellow cube is the warm sun of the system.
 4. One lens    - soft glow everywhere; streak, starburst and ghosts only from the brightest light.
 """
-import bpy, math, random
+import bpy, math, random, os
 from mathutils import Vector, Matrix, Euler
 from lib import lin, mat_nodes, link, points_object, gn_instancer, tiny_sphere, set_vis, emission_mat
 
@@ -469,7 +469,8 @@ def card(name, loc, target, w, h, strength, col):
 
 
 # ----------------------------------------------------------------------------------------------- lens
-def lens(scene, flare=True, sun_pos=(0.5, 0.5), fog=0.32, bloom=0.22, beams=0.7, streak=0.25, ghosts=0.05, burst=0.08, diffuse=0.0, vignette=0.0, halo=0.0):
+def lens(scene, flare=True, sun_pos=(0.5, 0.5), fog=0.32, bloom=0.22, beams=0.7, streak=0.25, ghosts=0.05, burst=0.08, diffuse=0.0, vignette=0.0, halo=0.0,
+         fog_thr=2.2, bloom_thr=1.3):
     """Soft glow always; the anamorphic streak, starburst, sun beams and ghosts only when `flare` is on, and
     thresholds high enough that only the star (hundreds in scene-linear) feeds them."""
     ng = bpy.data.node_groups.new('SDC lens', 'CompositorNodeTree')
@@ -486,8 +487,8 @@ def lens(scene, flare=True, sun_pos=(0.5, 0.5), fog=0.32, bloom=0.22, beams=0.7,
         return g
 
     chain = [rl,
-             glare('Fog Glow', Threshold=2.2, Smoothness=0.4, Strength=fog, Size=0.5, Saturation=1.0),
-             glare('Bloom', Threshold=1.3, Smoothness=0.3, Strength=bloom, Size=0.85, Saturation=1.0)]
+             glare('Fog Glow', Threshold=fog_thr, Smoothness=0.4, Strength=fog, Size=0.5, Saturation=1.0),
+             glare('Bloom', Threshold=bloom_thr, Smoothness=0.3, Strength=bloom, Size=0.85, Saturation=1.0)]
     if flare:
         chain += [glare('Streaks', Threshold=25.0 if not beams else 40.0, Smoothness=0.2, Strength=streak, Streaks=2, Iterations=4, Fade=0.955,
                         **{'Streaks Angle': 0.0, 'Color Modulation': 0.35}),
@@ -565,6 +566,202 @@ def sleek_world(glow_dir=(0.3, 1.0, 0.45), base='#07060c', haze='#221a30', haze_
     L.new(lp.outputs['Is Camera Ray'], ms.inputs['Fac']); L.new(dark.outputs[0], ms.inputs[1]); L.new(bg.outputs[0], ms.inputs[2])
     L.new(ms.outputs[0], out.inputs['Surface'])
     return w
+
+
+def nebula_world(base='#090314', strength=1.0, band_dir=(0.35, -0.25, 0.9), seed=3.0, env=None, env_strength=0.6,
+                 cover=0.0, wisps=0.0, glitter=0.0):
+    """Deep space with a nebula: violet, magenta and blue clouds along a diagonal band, warped so they swirl, with
+    gold dust in the brightest knots and a few dark lanes. Camera-only, so it never lights the shapes."""
+    w = bpy.data.worlds.new('SDC nebula')
+    try: w.use_nodes = True
+    except Exception: pass
+    nt = w.node_tree; N = nt.nodes; L = nt.links; N.clear()
+    out = N.new('ShaderNodeOutputWorld')
+    tc = N.new('ShaderNodeTexCoord')
+    nrm = N.new('ShaderNodeVectorMath'); nrm.operation = 'NORMALIZE'; L.new(tc.outputs['Generated'], nrm.inputs[0])
+    def noise(vec, scale, detail=6.0, rough=0.62, dist=0.0, off=0.0):
+        n_ = N.new('ShaderNodeTexNoise'); n_.inputs['Scale'].default_value = scale; n_.inputs['Detail'].default_value = detail
+        n_.inputs['Roughness'].default_value = rough; n_.inputs['Distortion'].default_value = dist
+        if off:
+            ad_ = N.new('ShaderNodeVectorMath'); ad_.operation = 'ADD'; ad_.inputs[1].default_value = (off, off * 0.7, off * 1.3)
+            L.new(vec, ad_.inputs[0]); vec = ad_.outputs[0]
+        L.new(vec, n_.inputs['Vector']); return n_
+    def m(op, a, b=None, clamp=False):
+        n_ = N.new('ShaderNodeMath'); n_.operation = op; n_.use_clamp = clamp
+        for i_, v_ in enumerate((a, b)):
+            if v_ is None: continue
+            if isinstance(v_, (int, float)): n_.inputs[i_].default_value = v_
+            else: L.new(v_, n_.inputs[i_])
+        return n_.outputs[0]
+    # domain warp: the clouds swirl
+    warp = noise(nrm.outputs[0], 1.6, detail=3.0, off=seed)
+    wv = N.new('ShaderNodeVectorMath'); wv.operation = 'SCALE'; wv.inputs['Scale'].default_value = 0.55
+    L.new(warp.outputs['Color'], wv.inputs[0])
+    wp = N.new('ShaderNodeVectorMath'); wp.operation = 'ADD'; L.new(nrm.outputs[0], wp.inputs[0]); L.new(wv.outputs[0], wp.inputs[1])
+    big = noise(wp.outputs[0], 2.2, detail=8.0, rough=0.6, off=seed + 1.0)
+    fine = noise(wp.outputs[0], 7.0, detail=10.0, rough=0.7, off=seed + 2.0)
+    # the band: clouds gather along a great circle and thin away from it
+    bd = N.new('ShaderNodeVectorMath'); bd.operation = 'DOT_PRODUCT'; bd.inputs[1].default_value = tuple(Vector(band_dir).normalized())
+    L.new(nrm.outputs[0], bd.inputs[0])
+    band = m('POWER', m('SUBTRACT', 1.0, m('ABSOLUTE', m('MULTIPLY', bd.outputs['Value'], 1.25)), clamp=True), 1.6)
+    if cover: band = m('ADD', cover, m('MULTIPLY', band, 1.0 - cover))           # (storyboard) gas in every direction
+    dens = m('MULTIPLY', m('POWER', m('MULTIPLY', m('SUBTRACT', big.outputs['Fac'], 0.36), 2.6, clamp=True), 2.2), band)
+    dens = m('MULTIPLY', dens, m('POWER', m('ADD', 0.25, m('MULTIPLY', fine.outputs['Fac'], 1.2)), 2.0))   # wisps, lanes
+    if wisps:
+        # bright filaments along the swirl (thin contours of a mid-scale noise), then dark dust lanes across them
+        mid = noise(wp.outputs[0], 4.2, detail=6.0, rough=0.55, off=seed + 7.0)
+        ridge = m('POWER', m('SUBTRACT', 1.0, m('MULTIPLY', m('ABSOLUTE', m('SUBTRACT', mid.outputs['Fac'], 0.5)), 7.0), clamp=True), 2.5)
+        ridge = m('MULTIPLY', ridge, m('MULTIPLY', m('SUBTRACT', fine.outputs['Fac'], 0.3), 2.5, clamp=True))     # smoke, not veins
+        dens = m('ADD', dens, m('MULTIPLY', m('MULTIPLY', ridge, m('MULTIPLY', band, m('ADD', 0.15, big.outputs['Fac']))), wisps))
+        lane = noise(wp.outputs[0], 3.1, detail=4.0, off=seed + 9.0)
+        dens = m('MULTIPLY', dens, m('SUBTRACT', 1.0, m('MULTIPLY', m('MULTIPLY', m('SUBTRACT', lane.outputs['Fac'], 0.56), 7.0, clamp=True), 0.65)))
+    hue = noise(wp.outputs[0], 1.2, detail=2.0, off=seed + 5.0)
+    cr = N.new('ShaderNodeValToRGB'); r = cr.color_ramp
+    r.elements[0].position = 0.0; r.elements[0].color = (*lin('#1a1f8c'), 1)        # blue
+    r.elements[1].position = 1.0; r.elements[1].color = (*lin('#c0388f'), 1)        # magenta
+    for p_, c_ in ((0.35, '#3b1c8f'), (0.62, '#6a24a0')):                           # violets
+        e_ = r.elements.new(p_); e_.color = (*lin(c_), 1)
+    L.new(hue.outputs['Fac'], cr.inputs['Fac'])
+    col_ = cr.outputs['Color']
+    if wisps:                                                   # the dense gas glows a lighter lilac
+        hl = N.new('ShaderNodeMix'); hl.data_type = 'RGBA'; hl.clamp_factor = True
+        L.new(col_, hl.inputs['A']); hl.inputs['B'].default_value = (*lin('#b48cff'), 1)
+        L.new(m('MULTIPLY', m('POWER', m('MULTIPLY', dens, 0.9, clamp=True), 2.0), 0.7), hl.inputs['Factor']); col_ = hl.outputs['Result']
+    gold = N.new('ShaderNodeMix'); gold.data_type = 'RGBA'; gold.clamp_factor = True     # gold where it is densest
+    L.new(col_, gold.inputs['A']); gold.inputs['B'].default_value = (*lin('#ffb85c'), 1)
+    L.new(m('POWER', m('MULTIPLY', dens, 1.15, clamp=True), 4.0), gold.inputs['Factor'])
+    cl = N.new('ShaderNodeVectorMath'); cl.operation = 'SCALE'; L.new(gold.outputs['Result'], cl.inputs[0])
+    L.new(m('MULTIPLY', dens, 1.1), cl.inputs['Scale'])
+    sky = N.new('ShaderNodeMix'); sky.data_type = 'RGBA'; sky.blend_type = 'ADD'; sky.inputs['Factor'].default_value = 1.0
+    sky.inputs['A'].default_value = (*lin(base), 1); L.new(cl.outputs[0], sky.inputs['B'])
+    sky_ = sky.outputs['Result']
+    if glitter:
+        # (storyboard) star dust: fine points gathered in the clouds, violet-white with a little gold. Two sizes of cells
+        # in the view direction (only cells whose point lies near the sphere show, so the field is sparse and uneven).
+        acc = None
+        for sc_, thr_, k_ in ((70.0, 0.06, 1.0), (160.0, 0.11, 0.55), (330.0, 0.15, 0.3)):
+            vo = N.new('ShaderNodeTexVoronoi'); vo.voronoi_dimensions = '3D'; vo.feature = 'F1'
+            vo.inputs['Scale'].default_value = sc_; L.new(nrm.outputs[0], vo.inputs['Vector'])
+            dot = m('POWER', m('SUBTRACT', 1.0, m('DIVIDE', vo.outputs['Distance'], thr_), clamp=True), 2.0)
+            sp_ = N.new('ShaderNodeSeparateColor'); L.new(vo.outputs['Color'], sp_.inputs[0])
+            b_ = m('MULTIPLY', m('MULTIPLY', dot, m('ADD', 0.15, m('POWER', sp_.outputs[0], 6.0))), k_)
+            acc = b_ if acc is None else m('ADD', acc, b_)
+        acc = m('MULTIPLY', m('MULTIPLY', acc, m('ADD', 0.12, m('MULTIPLY', dens, 2.5))), glitter)
+        gc = N.new('ShaderNodeMix'); gc.data_type = 'RGBA'; gc.clamp_factor = True
+        gc.inputs['A'].default_value = (*lin('#efe4ff'), 1); gc.inputs['B'].default_value = (*lin('#ffd27a'), 1)
+        L.new(m('POWER', sp_.outputs[1], 3.0), gc.inputs['Factor'])
+        gs = N.new('ShaderNodeVectorMath'); gs.operation = 'SCALE'; L.new(gc.outputs['Result'], gs.inputs[0]); L.new(acc, gs.inputs['Scale'])
+        sk2 = N.new('ShaderNodeMix'); sk2.data_type = 'RGBA'; sk2.blend_type = 'ADD'; sk2.inputs['Factor'].default_value = 1.0
+        L.new(sky_, sk2.inputs['A']); L.new(gs.outputs[0], sk2.inputs['B']); sky_ = sk2.outputs['Result']
+    bg = N.new('ShaderNodeBackground'); bg.inputs['Strength'].default_value = strength
+    L.new(sky_, bg.inputs['Color'])
+    lp = N.new('ShaderNodeLightPath')
+    dark = N.new('ShaderNodeBackground'); dark.inputs['Color'].default_value = (*lin(base), 1)
+    # what glass and metal see: reflections of a studio (env), the nebula through them; nothing else is lit by it
+    seen = N.new('ShaderNodeMixShader')
+    L.new(lp.outputs['Is Transmission Ray'], seen.inputs['Fac']); L.new(dark.outputs[0], seen.inputs[1]); L.new(bg.outputs[0], seen.inputs[2])
+    if env and os.path.exists(env):
+        im = bpy.data.images.load(env, check_existing=True)
+        et = N.new('ShaderNodeTexEnvironment'); et.image = im
+        eb = N.new('ShaderNodeBackground'); eb.inputs['Strength'].default_value = env_strength
+        L.new(et.outputs['Color'], eb.inputs['Color'])
+        gl = N.new('ShaderNodeMixShader')
+        L.new(lp.outputs['Is Glossy Ray'], gl.inputs['Fac']); L.new(seen.outputs[0], gl.inputs[1]); L.new(eb.outputs[0], gl.inputs[2])
+        seen = gl
+    ms = N.new('ShaderNodeMixShader')
+    L.new(lp.outputs['Is Camera Ray'], ms.inputs['Fac']); L.new(seen.outputs[0], ms.inputs[1]); L.new(bg.outputs[0], ms.inputs[2])
+    L.new(ms.outputs[0], out.inputs['Surface'])
+    return w
+
+
+# ----------------------------------------------------------------------------------------------- jewels
+JEWELS = {   # (surface tint, absorption colour, absorption density, roughness, dispersion, sparkle, metal)
+    'sphere': ('#c9ffe0', '#1f9a55', 11.0, 0.02, 0.02, 1.0, False),    # luminous green glass
+    'torus':  ('#ffc64a', None, 0.0, 0.1, 0.0, 0.0, True),           # polished gold
+    'dome':   ('#e2d6ff', '#5a3fe6', 10.0, 0.03, 0.02, 1.0, False),    # violet glass, sparkling inside
+    'cone':   ('#ffd0d0', '#d0142c', 18.0, 0.02, 0.03, 0.3, False),    # ruby
+    'arch':   ('#ffc8c8', '#c20f2a', 15.0, 0.03, 0.02, 0.3, False),    # ruby, deeper
+    'octa':   ('#cfdcff', '#1438e8', 16.0, 0.01, 0.06, 0.4, False),    # sapphire, colour fringes on its facets
+    'cube':   ('#eef4ff', '#9fb8ff', 2.0, 0.0, 0.03, 0.2, False),      # clear glass
+}
+
+
+BRAND_GLOW = {'pixel': '#FFBE00', 'torus': '#E5A10A', 'sphere': '#2f7a2a', 'cube': '#2a3cff', 'dome': '#2a6cff',
+              'cone': '#FF8A14', 'arch': '#B0123a', 'octa': '#0b3cd6'}
+
+
+def brand_glow(root, key, glow=0.35, size=1.0):
+    """Keep the shape library's designed materials and colours; give them the storyboard's finish: a clear coat, a little
+    less roughness, and a soft light from within in the shape's own brand colour."""
+    done = set()
+    for ch in [root] + list(root.children_recursive):
+        if ch.type != 'MESH': continue
+        for sl in ch.material_slots:
+            mt = sl.material
+            if not mt or not mt.node_tree or mt.name in done: continue
+            done.add(mt.name)
+            for n in mt.node_tree.nodes:
+                if n.bl_idname != 'ShaderNodeBsdfPrincipled': continue
+                n.inputs['Coat Weight'].default_value = max(n.inputs['Coat Weight'].default_value, 0.55)
+                n.inputs['Coat Roughness'].default_value = 0.03
+                if not n.inputs['Roughness'].links:
+                    n.inputs['Roughness'].default_value = n.inputs['Roughness'].default_value * 0.6
+                if key == 'torus':                                    # polished metallic gold, in the brand's marigold
+                    n.inputs['Metallic'].default_value = 1.0; n.inputs['Coat Weight'].default_value = 0.2
+                    if not n.inputs['Roughness'].links: n.inputs['Roughness'].default_value = 0.12
+                if key == 'arch':                                     # ruby gloss with defined highlights
+                    n.inputs['Coat Weight'].default_value = 0.85
+                    if not n.inputs['Roughness'].links: n.inputs['Roughness'].default_value = 0.22
+                if key == 'sphere':                                   # emerald, its highlight softened
+                    n.inputs['Coat Roughness'].default_value = 0.12
+                if not n.inputs['Emission Strength'].links:
+                    bc = n.inputs['Base Color']
+                    col = tuple(bc.default_value[:3]) if not bc.links else lin(BRAND_GLOW[key])
+                    if not n.inputs['Emission Color'].links:
+                        n.inputs['Emission Color'].default_value = (*col, 1)
+                    n.inputs['Emission Strength'].default_value = max(n.inputs['Emission Strength'].default_value, 0.0 if key == 'torus' else glow)
+
+
+def jewel_material(key, size=1.0):
+    """The storyboard look: each shape a jewel. `size` scales the absorption (a planet-sized jewel must not be black)."""
+    tint, absorb, dens, rough, disp, sparkle, metal = JEWELS[key]
+    m, nt, out = mat_nodes(f'jewel {key} {size:g}'); N = nt.nodes; L = nt.links
+    b = N.new('ShaderNodeBsdfPrincipled')
+    b.inputs['Base Color'].default_value = (*lin(tint), 1); b.inputs['Roughness'].default_value = rough
+    if metal:
+        b.inputs['Metallic'].default_value = 1.0; b.inputs['Coat Weight'].default_value = 0.35
+        b.inputs['Coat Roughness'].default_value = 0.03
+    else:
+        b.inputs['Transmission Weight'].default_value = 1.0; b.inputs['IOR'].default_value = 1.52
+        if 'Dispersion' in b.inputs: b.inputs['Dispersion'].default_value = disp
+        b.inputs['Coat Weight'].default_value = 0.2
+        if absorb:                                                # a soft light inside, in its own colour: it glows
+            b.inputs['Emission Color'].default_value = (*lin(absorb), 1)
+            b.inputs['Emission Strength'].default_value = 0.35 if key != 'cube' else 0.08
+    surf = b.outputs[0]
+    if sparkle:                                                   # tiny points of light caught inside
+        tc = N.new('ShaderNodeTexCoord'); vo = N.new('ShaderNodeTexVoronoi'); vo.inputs['Scale'].default_value = 34.0 / size
+        L.new(tc.outputs['Object'], vo.inputs['Vector'])
+        mr = N.new('ShaderNodeMapRange'); mr.inputs['From Min'].default_value = 0.06; mr.inputs['From Max'].default_value = 0.0
+        mr.inputs['To Max'].default_value = 6.0 * sparkle; mr.clamp = True; L.new(vo.outputs['Distance'], mr.inputs['Value'])
+        em = N.new('ShaderNodeEmission'); em.inputs['Color'].default_value = (*lin('#fff1c9'), 1)
+        L.new(mr.outputs['Result'], em.inputs['Strength'])
+        ad = N.new('ShaderNodeAddShader'); L.new(surf, ad.inputs[0]); L.new(em.outputs[0], ad.inputs[1]); surf = ad.outputs[0]
+    L.new(surf, out.inputs['Surface'])
+    if absorb:
+        va = N.new('ShaderNodeVolumeAbsorption'); va.inputs['Color'].default_value = (*lin(absorb), 1)
+        va.inputs['Density'].default_value = dens / size
+        L.new(va.outputs[0], out.inputs['Volume'])
+    return m
+
+
+def jewel(root, key, size=1.0):
+    """Dress every part of a library shape as its jewel."""
+    mt = jewel_material(key, size)
+    for ch in [root] + list(root.children_recursive):
+        if ch.type == 'MESH':
+            ch.data.materials.clear(); ch.data.materials.append(mt)
+    return mt
 
 
 def _trail_material(name, peak, gamma=1.6, stops=TRAIL_STOPS, soft=False, anim=False):

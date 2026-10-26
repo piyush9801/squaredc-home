@@ -11,19 +11,18 @@ import Lenis from 'lenis';
 //         the moment (the headline inside the system), then the cube breaks away and the shapes follow it; the camera
 //         tracks alongside, then comes round ahead. A rest at each of the three, where the words are. The two moves
 //         after the moment travel far, so they have the most frames per scroll.
-//   film  Scene 03b, The making               frames 1001-1430 (played here, between 03 and 04): the landing page's
-//         4D, one station each: the idea draws a blueprint (Define), blocks lock into the cube (Design), it races down
-//         a gold slide that builds itself ahead of it (Develop), and is thrown into a gold ring (Deliver). A dip to the
-//         dark into it, a flash of the ring's gold out of it.
-//   film  Scenes 04-06, The creation          frames 566-1000: the system comes to rest and the shapes build the brand's
+//   film  Scenes 04-06, The creation          frames 566-1375: the system comes to rest and the shapes build the brand's
 //         'Structure For Clarity' totem (the scroll builds it); it ignites and the second headline stands beside it;
-//         then the camera pulls far back to one glowing shape, for the last words. The footer follows the stage.
+//         then it becomes a world, and the camera pulls far back to its universe of worlds.
+//   film  Scene 07, The projects              frames 1376-1835: each world is a project; the camera flies to them in
+//         turn and slows beside each while its name is up, then draws back to the whole universe for the last words.
+//         The footer follows the stage.
 const FILMS = [
   { dir: 's01', from: 1, count: 120 },
   { dir: 's02', from: 121, count: 140 },
   { dir: 's03', from: 261, count: 305 },
-  { dir: 's03b', from: 1001, count: 430 },
-  { dir: 's04', from: 566, count: 435 },
+  { dir: 's04', from: 566, count: 810 },
+  { dir: 's05', from: 1376, count: 460 },
 ];
 // film frame number -> global frame index (the films play in the order above, not in frame-number order) and back
 const G = fn => { let k = 0; for (const f of FILMS) { if (fn >= f.from && fn < f.from + f.count) return k + fn - f.from; k += f.count; } return -1; };
@@ -40,30 +39,43 @@ const SEGMENTS = [                         // scroll length of each part, in vie
   { kind: 'hold', a: 424, b: 424, vh: 50 },
   { kind: 'film', a: 424, b: 564, vh: 220 },     // round ahead, looking back down the spiral
   { kind: 'hold', a: 564, b: 564, vh: 60 },
-  { kind: 'film', a: 564, b: G(1008), vh: 110 },        // into the cube's gold, and out of it onto the idea
-  { kind: 'film', a: G(1008), b: G(1100), vh: 200 },    // 01 Define: the blueprint draws itself
-  { kind: 'hold', a: G(1100), b: G(1100), vh: 40 },
-  { kind: 'film', a: G(1100), b: G(1198), vh: 230 },    // 02 Design: the blocks lock in; it turns yellow
-  { kind: 'hold', a: G(1198), b: G(1198), vh: 40 },
-  { kind: 'film', a: G(1198), b: G(1326), vh: 280 },    // 03 Develop: down the slide, full throttle
-  { kind: 'film', a: G(1326), b: G(1430), vh: 230 },    // 04 Deliver: into the ring; back to see the whole
-  { kind: 'film', a: G(1430), b: G(573), vh: 110 },     // into the ring's gold, and out of it onto the cube
-  { kind: 'film', a: G(573), b: G(700), vh: 190 },      // it comes to rest; the camera comes round to face it
+  { kind: 'film', a: 564, b: G(700), vh: 220 },         // it comes to rest; the camera comes round to face it
   { kind: 'film', a: G(700), b: G(800), vh: 280 },      // the shapes build the totem, one by one, as you scroll
   { kind: 'hold', a: G(800), b: G(800), vh: 40 },
   { kind: 'film', a: G(800), b: G(880), vh: 180 },      // it ignites; the dust bursts outward
   { kind: 'hold', a: G(880), b: G(880), vh: 70 },       // 'And ideas become worlds.'
-  { kind: 'film', a: G(880), b: G(1000), vh: 240 },     // far back, to one glowing shape
-  { kind: 'hold', a: G(1000), b: G(1000), vh: 90 },     // the last words; then the footer
+  { kind: 'film', a: G(880), b: G(925), vh: 130 },      // it hums; threads of light run to the diamond
+  { kind: 'film', a: G(925), b: G(1010), vh: 280 },     // it collapses into the cube; the energy builds; the shockwave
+  { kind: 'film', a: G(1010), b: G(1085), vh: 280 },    // the cube grows past the lens and is revealed as a world
+  { kind: 'hold', a: G(1085), b: G(1085), vh: 50 },
+  { kind: 'film', a: G(1085), b: G(1335), vh: 560 },    // its universe: the sapphire, the torus, the arch, the sphere
+  { kind: 'film', a: G(1335), b: G(1375), vh: 110 },    // the universe settles
+  { kind: 'film', a: G(1375), b: G(1425), vh: 150 },    // the projects: to each world in turn,
+  { kind: 'film', a: G(1425), b: G(1465), vh: 170 },    //   slowing beside it while its name is up (Project 1)
+  { kind: 'film', a: G(1465), b: G(1515), vh: 150 },
+  { kind: 'film', a: G(1515), b: G(1555), vh: 170 },    //   Project 2
+  { kind: 'film', a: G(1555), b: G(1605), vh: 150 },
+  { kind: 'film', a: G(1605), b: G(1645), vh: 170 },    //   Project 3
+  { kind: 'film', a: G(1645), b: G(1695), vh: 150 },
+  { kind: 'film', a: G(1695), b: G(1735), vh: 170 },    //   Project 4
+  { kind: 'film', a: G(1735), b: G(1795), vh: 200 },    // back out to the whole universe
+  { kind: 'film', a: G(1795), b: G(1835), vh: 110 },    // the worlds dim for the brand
+  { kind: 'hold', a: G(1835), b: G(1835), vh: 90 },     // then the footer
 ];
+// Scene 07: the camera's slow orbit beside each world, in film frames (Blender: TOUR5)
+const PROJECT_ORBITS = [[1425, 1465], [1515, 1555], [1605, 1645], [1695, 1735]];
 const LOOP_L = 96, LOOP_C = 24, LOOP_FPS = 24;
 const BASE = import.meta.env.BASE_URL;        // '/' locally and on Netlify, '/squaredc-home/' on GitHub Pages
-const loopSrc = i => `${BASE}frames/s01loop/l_${String(i + 1).padStart(4, '0')}.webp`;
+// Larger screens get the full-HD frames (built with VITE_HD=1, from frames-hd/), others the lighter 1280 set; the same
+// films and frame numbers either way. The mattes and tracks are shared.
+const HD = import.meta.env.VITE_HD === '1' && innerWidth >= 1000 && innerWidth * Math.min(devicePixelRatio || 1, 2) > 1400;
+const FR = HD ? 'frames-hd' : 'frames';
+const loopSrc = i => `${BASE}${FR}/s01loop/l_${String(i + 1).padStart(4, '0')}.webp`;
 const matteSrc = (dir, f) => `${BASE}frames/${dir}/m_${String(f).padStart(4, '0')}.webp`;
 function srcOf(i) {                         // global frame index (0-based) -> file
   let k = i;
   for (const f of FILMS) {
-    if (k < f.count) return `${BASE}frames/${f.dir}/f_${String(f.from + k).padStart(4, '0')}.webp`;
+    if (k < f.count) return `${BASE}${FR}/${f.dir}/f_${String(f.from + k).padStart(4, '0')}.webp`;
     k -= f.count;
   }
   return null;
@@ -77,9 +89,9 @@ const fore = document.getElementById('fore');
 const fctx = fore.getContext('2d');
 const moments = [...stage.querySelectorAll('.moment')];
 const finale = stage.querySelector('.finale');
-const make = stage.querySelector('.make'), steps = [...stage.querySelectorAll('.step')];
 const dip = stage.querySelector('.dip');
 const notes = [...stage.querySelectorAll('.note')];
+const projects = [...stage.querySelectorAll('.project')];
 const leads = [...stage.querySelectorAll('.lead')];
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const totalVh = SEGMENTS.reduce((n, s) => n + s.vh, 0);
@@ -151,6 +163,7 @@ function resize() {
   canvas.width = fore.width = Math.round(stage.clientWidth * dpr);
   canvas.height = fore.height = Math.round(stage.clientHeight * dpr);
   moments.forEach(m => m.classList.toggle('flat', stage.clientWidth / stage.clientHeight < 1.2));
+  projects.forEach(p => p.classList.toggle('flat', stage.clientWidth / stage.clientHeight < 1.2));
   forcePaint = true;
 }
 function cover(c, im, alpha = 1, z = null) {
@@ -169,10 +182,30 @@ function cover(c, im, alpha = 1, z = null) {
 let zoom = null;               // set while crossing between chapters
 const paint = (im, alpha) => cover(ctx, im, alpha, zoom);
 
-(function grain() {            // film grain: one small noise tile, animated by CSS
-  const c = document.createElement('canvas'); c.width = c.height = 160;
-  const g = c.getContext('2d'); const d = g.createImageData(160, 160);
-  for (let k = 0; k < d.data.length; k += 4) { const v = Math.random() * 255; d.data[k] = d.data[k + 1] = d.data[k + 2] = v; d.data[k + 3] = 255; }
+// The mood grade, in the page rather than baked into the frames, so it can be tuned without a render: the blacks of
+// space lifted to the brand's deep violet, and a soft violet vignette that holds the eye in the middle (the contrast and
+// saturation lift is a CSS filter on both canvases). It is drawn the same way over the film and over the piece of film
+// in front of a headline (then cut back to that piece's matte), so the two always match.
+const GRADE = { blacks: 'rgb(14,6,32)', edge: 'rgb(152,130,198)' };
+function grade(c, matte) {
+  const W = c.canvas.width, H = c.canvas.height;
+  c.save();
+  c.globalCompositeOperation = 'lighten'; c.fillStyle = GRADE.blacks; c.fillRect(0, 0, W, H);
+  const v = c.createRadialGradient(W / 2, H * 0.47, Math.min(W, H) * 0.36, W / 2, H * 0.47, Math.hypot(W, H) * 0.6);
+  v.addColorStop(0, '#fff'); v.addColorStop(1, GRADE.edge);
+  c.globalCompositeOperation = 'multiply'; c.fillStyle = v; c.fillRect(0, 0, W, H);
+  if (matte) { c.globalCompositeOperation = 'destination-in'; cover(c, matte); }
+  c.restore();
+}
+
+(function grain() {            // film grain: a soft, slightly clumpy noise tile (two octaves), flickered by CSS
+  const S = 192, H = S / 2, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d'); const d = g.createImageData(S, S);
+  const clumps = Float32Array.from({ length: H * H }, () => Math.random());
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const v = 255 * (0.62 * Math.random() + 0.38 * clumps[(y >> 1) * H + (x >> 1)]), k = (y * S + x) * 4;
+    d.data[k] = d.data[k + 1] = d.data[k + 2] = v; d.data[k + 3] = 255;
+  }
   g.putImageData(d, 0, 0);
   section.querySelector('.grain').style.backgroundImage = `url(${c.toDataURL()})`;
 })();
@@ -199,9 +232,9 @@ const at = (loc, s, t0, dur) => loc.s > s ? 1 : loc.s < s ? 0 : smooth((loc.t - 
 function copy(loc) {
   const st = stage.style;
   const out1 = at(loc, 2, 0.02, 0.12);                         // Scene 01's line clears as Scene 02 begins
-  st.setProperty('--a1', (at(loc, 0, 0.5, 0.12) * (1 - out1)).toFixed(3));
-  st.setProperty('--a2', (at(loc, 0, 0.55, 0.12) * (1 - out1)).toFixed(3));
-  st.setProperty('--b', (at(loc, 0, 0.64, 0.12) * (1 - out1)).toFixed(3));
+  st.setProperty('--a1', (at(loc, 0, 0.84, 0.08) * (1 - out1)).toFixed(3));   // once the light has cleared
+  st.setProperty('--a2', (at(loc, 0, 0.87, 0.08) * (1 - out1)).toFixed(3));
+  st.setProperty('--b', (at(loc, 0, 0.92, 0.07) * (1 - out1)).toFixed(3));
   const out2 = at(loc, 4, 0.04, 0.14);                         // Scene 02's lines clear as gravity takes over
   st.setProperty('--c1', (at(loc, 2, 0.36, 0.12) * (1 - out2)).toFixed(3)); // Everything starts with a shape.
   st.setProperty('--c2', (at(loc, 2, 0.52, 0.1) * (1 - out2)).toFixed(3));  // An idea.
@@ -282,6 +315,7 @@ function overlays(idx, force) {
       fctx.globalCompositeOperation = 'copy'; cover(fctx, mt);
       fctx.globalCompositeOperation = 'source-in'; cover(fctx, im);
       fctx.globalCompositeOperation = 'source-over';
+      grade(fctx, mt);
       drawn = true;
     }
   }
@@ -290,42 +324,15 @@ function overlays(idx, force) {
   const Tn = track && f >= track.from ? track.frames[Math.min(f - track.from, track.frames.length - 1)] : null;
   notes.forEach((_, k) => noteAt(k, idx, Tn, fb));
   // the finale, under the one shape that remains
-  [953, 963, 973, 983, 991].forEach((a, k) => finale.style.setProperty(`--f${k + 1}`, smooth((idx - G(a)) / 18).toFixed(3)));
-  // the 4D: each step over its station (film frames of Scene 03b)
-  make.style.setProperty('--mk', (smooth((idx - G(1006)) / 12) * (1 - smooth((idx - G(1418)) / 10))).toFixed(3));
-  STEPS.forEach(([a, b], k) => {
-    const v = smooth((idx - G(a)) / 14) * (1 - smooth((idx - G(b)) / 10));
-    const el = steps[k];
-    el.style.visibility = v > 0.001 ? 'visible' : 'hidden';
-    el.style.setProperty('--s', v.toFixed(3)); el.style.setProperty('--s2', (smooth((idx - G(a) - 6) / 14) * (1 - smooth((idx - G(b)) / 10))).toFixed(3));
+  [1760, 1772, 1784, 1806, 1818].forEach((a, k) => finale.style.setProperty(`--f${k + 1}`, smooth((idx - G(a)) / 18).toFixed(3)));
+  // each project's name, while the camera slows beside its world
+  projects.forEach((el, k) => {
+    const [a, b] = PROJECT_ORBITS[k];
+    el.style.setProperty('--p', (smooth((idx - G(a - 14)) / 14) * (1 - smooth((idx - G(b - 2)) / 12))).toFixed(3));
   });
 }
-const STEPS = [[1014, 1096], [1110, 1194], [1204, 1320], [1334, 1422]];
-// The crossings between chapters, on the continuous frame position. Each dives into the glowing gold thing on screen
-// (the last frame held and scaled up about it while its gold fills the stage), then comes out of the gold onto the
-// next chapter's subject (its first frames, scaled down onto it): the cube becomes the idea; the ring, the cube.
-// where the idea is on screen in Scene 03b's first frames (from the Blender camera), for the light to gather into
-const BALL_IN = [[.40, .91], [.41, .88], [.42, .86], [.43, .83], [.44, .80], [.45, .78], [.46, .75], [.47, .73], [.48, .72], [.49, .71], [.50, .70], [.51, .70]];
-function crossing(cur) {
-  const last = t => t && t.frames[t.frames.length - 1];
-  const legs = [
-    { a: 564, into: () => last(track) && last(track).c, out: f => BALL_IN[f - 1001] },                 // 03 -> 03b
-    { a: G(1430), into: () => [0.61, 0.51], out: f => track4 && track4.frames[f - track4.from] && track4.frames[f - track4.from].c },  // 03b -> 04
-  ];
-  for (const L of legs) {
-    const k = cur - L.a;
-    if (k > 0 && k < 4) {
-      const e = k / 4, c = L.into() || [0.5, 0.5];
-      return { idx: L.a, z: { s: 1 + 7 * e * e * e, x: c[0], y: c[1] }, gold: Math.pow(e, 1.4), r: 18 + 150 * Math.pow(e, 1.5) };
-    }
-    if (k >= 4 && k < 8) {
-      const e = (k - 4) / 4, i = Math.round(cur), c = L.out(frameNo(i)) || [0.5, 0.5];
-      return { idx: i, z: { s: 1 + 3 * (1 - e) * (1 - e), x: c[0], y: c[1] }, gold: 1 - smooth((e - 0.45) / 0.55), r: 4 + 164 * (1 - e) * (1 - e) };  // the light gathers back into the subject
-    }
-    if (k > -6 && k <= 0 && L.a !== 564) return { idx: null, z: { s: 1, x: 0.61, y: 0.51 }, gold: 0.5 * (1 + k / 6), r: 18 };  // the ring's glow builds
-  }
-  return null;
-}
+// (No crossings between chapters now: the film runs straight through.)
+function crossing() { return null; }
 function dips(X) {              // the glow is centred where the camera dives (or, before it, on the ring)
   dip.style.setProperty('--dip', (X ? X.gold : 0).toFixed(3));
   if (X && X.r) dip.style.setProperty('--dr', X.r.toFixed(1) + 'vmax');
@@ -379,10 +386,10 @@ if (reduced) {
     if (im) {
       if (fade && fade.from) {
         const a = Math.min(1, (t - fade.start) / fade.dur);
-        paint(fade.from); paint(im, a * a * (3 - 2 * a));
+        paint(fade.from); paint(im, a * a * (3 - 2 * a)); grade(ctx);
         if (a >= 1) fade = null;
       } else if (mode === 'loop' || im !== shown || forcePaint) {
-        paint(im); forcePaint = false;
+        paint(im); grade(ctx); forcePaint = false;
       }
       shown = im;
     }

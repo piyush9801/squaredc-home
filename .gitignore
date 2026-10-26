@@ -7,3 +7,7 @@ qa/
 *.blend1
 blender/*_backup.py
 __pycache__/
+invoices/
+blender/assets/
+blender/*_before_*.py
+public/frames-hd/

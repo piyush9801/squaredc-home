@@ -7,7 +7,9 @@ import bpy, math, random, mathutils
 from mathutils import Vector, Euler, Matrix
 from bpy_extras.object_utils import world_to_camera_view
 
-LIB = "/Users/piyushkumar/Documents/New project/Shape_Assets_2026-09-09/All_Eight_Assets.blend"
+LIB = __import__('os').path.join(__import__('os').path.dirname(__import__('os').path.abspath(__file__)), 'assets', 'lib', 'All_Eight_Assets.blend')
+if not __import__('os').path.exists(LIB):        # (a local copy: reads from the iCloud-synced Documents folder could stall a render for minutes)
+    LIB = "/Users/piyushkumar/Documents/New project/Shape_Assets_2026-09-09/All_Eight_Assets.blend"
 ASSETS = {
     'pixel': 'ASSET • Yellow Square', 'torus': 'ASSET • Torus', 'sphere': 'ASSET • Sphere',
     'cube': 'ASSET • Cube', 'dome': 'ASSET • Half-sphere', 'cone': 'ASSET • Cone',
@@ -254,9 +256,14 @@ def render_setup(scene, w=1600, h=900, samples=96, threshold=0.02, mblur=True):
     scene.render.engine = 'CYCLES'
     try:
         p = bpy.context.preferences.addons['cycles'].preferences
-        p.compute_device_type = 'METAL'; p.get_devices()
-        for d in p.devices: d.use = True
-        scene.cycles.device = 'GPU'
+        import sys as _sys                                 # Metal on the Mac; OptiX (else CUDA) on an NVIDIA render server
+        for t_ in (['METAL'] if _sys.platform == 'darwin' else ['OPTIX', 'CUDA', 'HIP', 'ONEAPI']):
+            try:
+                p.compute_device_type = t_; p.get_devices()
+                if any(d.type == t_ for d in p.devices): break
+            except Exception: continue
+        for d in p.devices: d.use = d.type != 'CPU'        # the GPU alone: with the CPU in the mix a frame can wait
+        scene.cycles.device = 'GPU'                        # many minutes on the CPU's share (the sky's noise is heavy)
     except Exception as e:
         print('GPU setup skipped:', e)
     c = scene.cycles
@@ -269,7 +276,8 @@ def render_setup(scene, w=1600, h=900, samples=96, threshold=0.02, mblur=True):
     c.caustics_reflective = False; c.caustics_refractive = False; c.blur_glossy = 1.0
     c.sample_clamp_indirect = 8.0
     scene.render.resolution_x = w; scene.render.resolution_y = h; scene.render.resolution_percentage = 100
-    scene.render.use_persistent_data = True
+    scene.render.use_persistent_data = __import__('os').environ.get('SDC_PERSIST', '1') == '1'   # (off: less memory)
+    scene.render.compositor_device = __import__('os').environ.get('SDC_COMPOSITOR', 'GPU')   # lens glows/streaks: the CPU is slow at full HD on the Mac
     scene.render.use_motion_blur = mblur; scene.render.motion_blur_shutter = 0.45
     scene.render.film_transparent = False
     import os
